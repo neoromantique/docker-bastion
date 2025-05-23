@@ -22,7 +22,7 @@ RUN set -eux; \
     sed -i "s/${USER}:!/${USER}:*/g" /etc/shadow; \
     \
     apk add --no-cache \
-        openssh-server~=9.8 \
+        openssh-server \
         ca-certificates; \
     \
     echo "Welcome to Bastion!" > /etc/motd; \

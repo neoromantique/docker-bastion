@@ -1,6 +1,7 @@
-FROM alpine:3.11.6
+FROM alpine:3.20
 
-LABEL maintainer="Mark <mark.binlab@gmail.com>"
+#LABEL maintainer="Mark <mark.binlab@gmail.com>"
+LABEL maintainer="David <os.david@gtw.lt>"
 
 ARG HOME=/var/lib/bastion
 
@@ -9,25 +10,38 @@ ARG GROUP=bastion
 ARG UID=4096
 ARG GID=4096
 
-ENV HOST_KEYS_PATH_PREFIX="/usr"
-ENV HOST_KEYS_PATH="${HOST_KEYS_PATH_PREFIX}/etc/ssh"
+ENV HOST_KEYS_PATH_PREFIX="/usr" \
+    HOST_KEYS_PATH="/usr/etc/ssh"
+    
+COPY --chmod=755 --chown=root:root bastion /usr/sbin/bastion
 
-COPY bastion /usr/sbin/bastion
+RUN set -eux; \
+    addgroup -S -g ${GID} ${GROUP}; \
+    adduser -D -h ${HOME} -s /bin/ash -g "${USER} service" \
+           -u ${UID} -G ${GROUP} ${USER}; \
+    sed -i "s/${USER}:!/${USER}:*/g" /etc/shadow; \
+    \
+    apk add --no-cache \
+        openssh-server~=9.8 \
+        ca-certificates; \
+    \
+    echo "Welcome to Bastion!" > /etc/motd; \
+    mkdir -p ${HOST_KEYS_PATH}; \
+    mkdir -p /etc/ssh/auth_principals; \
+    echo "bastion" > /etc/ssh/auth_principals/bastion; \
+    \
+    chmod 700 ${HOME}; \
+    chown ${USER}:${GROUP} ${HOME}; \
+    \
+    rm -rf /var/cache/apk/* /tmp/*
 
-RUN addgroup -S -g ${GID} ${GROUP} \
-    && adduser -D -h ${HOME} -s /bin/ash -g "${USER} service" \
-           -u ${UID} -G ${GROUP} ${USER} \
-    && sed -i "s/${USER}:!/${USER}:*/g" /etc/shadow \
-    && set -x \
-    && apk add --no-cache openssh-server \
-    && echo "Welcome to Bastion!" > /etc/motd \
-    && chmod +x /usr/sbin/bastion \
-    && mkdir -p ${HOST_KEYS_PATH} \
-    && mkdir /etc/ssh/auth_principals \
-    && echo "bastion" > /etc/ssh/auth_principals/bastion
+USER ${USER}
 
 EXPOSE 22/tcp
 
-VOLUME ${HOST_KEYS_PATH}
+VOLUME ["${HOST_KEYS_PATH}"]
 
-ENTRYPOINT ["bastion"]
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD nc -z localhost 22 || exit 1
+
+ENTRYPOINT ["/usr/sbin/bastion"]

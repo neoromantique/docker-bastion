@@ -31,7 +31,7 @@ RUN set -eux; \
     chmod 755 ${HOST_KEYS_PATH}; \
     mkdir -p /etc/ssh/auth_principals; \
     echo "bastion" > /etc/ssh/auth_principals/bastion; \
-    echo "PidFile ${HOME}/run/sshd.pid" >> /usr/etc/ssh/sshd_config; \
+    echo "PidFile /usr/etc/ssh/sshd.pid" >> /etc/ssh/sshd_config; \
     \
     chmod 700 ${HOME}; \
     chown ${USER}:${GROUP} ${HOME}; \

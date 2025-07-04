@@ -3,9 +3,20 @@
 HOST_KEYS_PATH_PREFIX="${HOST_KEYS_PATH_PREFIX:='/'}"
 HOST_KEYS_PATH="${HOST_KEYS_PATH:='/etc/ssh'}"
 
+# The mounted authorized_keys file is read-only.
+# Copy it to a temporary location to ensure correct permissions.
+if [ -f "/var/lib/bastion/authorized_keys" ]; then
+    TEMP_DIR=$(mktemp -d -p /var/run/bastion)
+    chmod 700 "$TEMP_DIR"
+    cp /var/lib/bastion/authorized_keys "$TEMP_DIR/authorized_keys"
+    chown $(id -u):$(id -g) "$TEMP_DIR/authorized_keys"
+    chmod 600 "$TEMP_DIR/authorized_keys"
+    export AUTHORIZED_KEYS="$TEMP_DIR/authorized_keys"
+fi
+
 if [ "$PUBKEY_AUTHENTICATION" == "false" ]; then
     CONFIG_PUBKEY_AUTHENTICATION="-o PubkeyAuthentication=no"
-else
+elif [ "$PUBKEY_AUTHENTICATION" == "true" ]; then
     CONFIG_PUBKEY_AUTHENTICATION="-o PubkeyAuthentication=yes"
 fi
 

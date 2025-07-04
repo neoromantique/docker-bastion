@@ -12,18 +12,22 @@ ARG GID=4096
 
 ENV HOST_KEYS_PATH_PREFIX="/usr" \
     HOST_KEYS_PATH="/usr/etc/ssh"
-    
+
 COPY --chmod=755 --chown=root:root bastion /usr/sbin/bastion
+
+RUN mkdir -p /var/run/bastion
+RUN chown ${UID}:${GID} /var/run/bastion
+RUN chmod 755 /var/run/bastion
 
 RUN set -eux; \
     addgroup -S -g ${GID} ${GROUP}; \
     adduser -D -h ${HOME} -s /bin/ash -g "${USER} service" \
-           -u ${UID} -G ${GROUP} ${USER}; \
+    -u ${UID} -G ${GROUP} ${USER}; \
     sed -i "s/${USER}:!/${USER}:*/g" /etc/shadow; \
     \
     apk add --no-cache \
-        openssh-server \
-        ca-certificates; \
+    openssh-server \
+    ca-certificates; \
     \
     echo "Welcome to Bastion!" > /etc/motd; \
     mkdir -p ${HOST_KEYS_PATH}; \
